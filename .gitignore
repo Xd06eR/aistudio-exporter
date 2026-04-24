@@ -1,0 +1,34 @@
+# dependencies
+/node_modules
+
+# build output
+/.next/
+/out/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+
+# editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# logs & caches
+*.log
+.eslintcache
+
+# env
+.env*
+*.local
+
+# deploy
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
