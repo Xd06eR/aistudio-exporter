@@ -4,10 +4,10 @@ A small web tool that converts Google AI Studio conversation exports (`.json`) i
 
 Exports from [aistudio.google.com](https://aistudio.google.com) are intended for Gemini only. This tool restructures them into portable formats suitable for cross-chatbot continuation.
 
-![Next.js](https://img.shields.io/badge/Next.js-16-black)
-![React](https://img.shields.io/badge/React-19-blue)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
-![Tailwind](https://img.shields.io/badge/Tailwind-v4-38B2AC)
+![Next.js](https://img.shields.io/badge/Next.js-16-blue)
+![React](https://img.shields.io/badge/React-19-green)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-red)
+![Tailwind](https://img.shields.io/badge/Tailwind-v4-purple)
 
 <!-- HERO -->
 ![Landing screen](./public/screenshots/01-upload.png)
