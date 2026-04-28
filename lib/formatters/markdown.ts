@@ -1,5 +1,10 @@
-import type { ContentPart, ConversationIR, FormatOptions } from "../types";
-import { getRoleName, stripThink } from "./shared";
+import type {
+  ContentPart,
+  ConversationIR,
+  FormatOptions,
+  Grounding,
+} from "../types";
+import { getRoleName, renderAttachmentLabel, stripThink } from "./shared";
 
 export function toMarkdown(ir: ConversationIR, options: FormatOptions): string {
   let md = `**📄 ${ir.title}**\n\n`;
@@ -22,6 +27,9 @@ export function toMarkdown(ir: ConversationIR, options: FormatOptions): string {
       lastRoleName = roleName;
     }
     md += `${body}\n\n`;
+    if (turn.grounding) {
+      md += renderGrounding(turn.grounding) + "\n\n";
+    }
     if (turn.finishReason) {
       md += `> ⚠️ *Response ended with \`${turn.finishReason}\` (not normal completion).*\n\n`;
     }
@@ -65,6 +73,11 @@ function renderParts(parts: ContentPart[], options: FormatOptions): string {
       out.push(`> **Thinking:**\n> ${part.text.split("\n").join("\n> ")}`);
     } else if (part.kind === "media") {
       out.push(`*[Image/Media Attachment]*`);
+    } else if (part.kind === "attachment") {
+      out.push(`*[${renderAttachmentLabel(part)}]*`);
+    } else if (part.kind === "json") {
+      const body = (part.text || "").trim();
+      if (body) out.push("```json\n" + body + "\n```");
     } else if (part.kind === "code") {
       const lang = part.codeLanguage || "text";
       const body = (part.text || "").replace(/\s+$/, "");
@@ -87,4 +100,23 @@ function processText(text: string, options: FormatOptions): string {
   return text
     .replace(/<think>([\s\S]*?)<\/think>/gi, "> **Thinking:**\n> $1\n\n")
     .trim();
+}
+
+function renderGrounding(g: Grounding): string {
+  const lines: string[] = ["> **🔎 Grounded with Google Search**"];
+  if (g.webSearchQueries.length > 0) {
+    lines.push(">");
+    lines.push("> *Searches performed:*");
+    for (const q of g.webSearchQueries) lines.push(`> - ${q}`);
+  }
+  if (g.sources.length > 0) {
+    lines.push(">");
+    lines.push("> *Sources:*");
+    for (const s of g.sources) {
+      const ref = s.referenceNumber ? `${s.referenceNumber}. ` : "- ";
+      const label = s.title || s.uri;
+      lines.push(`> ${ref}[${label}](${s.uri})`);
+    }
+  }
+  return lines.join("\n");
 }

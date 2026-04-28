@@ -20,6 +20,9 @@ Exports from [aistudio.google.com](https://aistudio.google.com) are intended for
 - **Role labels** — pick the chatbot you're pasting into (Gemini, ChatGPT, Claude, Grok, Llama, Mistral, or DeepSeek) and the labels match.
 - **Streamed prose reassembled** — merged so Chinese / Japanese / continuous prose does not break mid-sentence.
 - **Code-execution preserved** — both the Gemini-generated source and its output are kept as separate blocks.
+- **Attachments labelled** — YouTube, Drive image, and Drive document references are surfaced as inline placeholders so follow-up turns ("what is in this video?") still read coherently.
+- **Search grounding rendered** — when Google Search is used, the searches performed and source citations are appended to the response.
+- **Structured Output preserved** — when Gemini's "Structured Output" toggle was on, the response is rendered inside a `json` code block.
 - **Copy or download** — correct file extension and MIME type per format.
 
 ## Output Formats
@@ -105,10 +108,10 @@ Google AI Studio autosaves every prompt to your Google Drive — there is no dir
 
 ## Limitations
 
-- **User attachments** (`driveDocument`, `driveImage`, `youtubeVideo`) are not extracted — the export only stores a reference (e.g. a Drive file ID or YouTube video ID), and resolving the underlying content requires the corresponding API. Turns whose only content is such an attachment are dropped, so a follow-up question that refers back to one ("what is in this video?") may appear without its referent.
-- **Google Search grounding metadata** (citations, web queries, source URIs from `chunk.grounding`) is not extracted into the output.
+- **User attachment content** (`driveDocument`, `driveImage`, `youtubeVideo`) is not embedded — the export only stores a reference (Drive file ID or YouTube video ID), and resolving the underlying file requires the corresponding API. The tool surfaces a labelled placeholder for each attachment so the conversation reads coherently, but the file content itself is not in the export.
+- **Grounding citations** are rendered as a list of search queries and source links after the response. Inline footnote mapping (using `corroborationSegments` char offsets) is not implemented.
 - **Run settings** displayed in the metadata panel reflect the current AI Studio toggle state at the time of export, not what the conversation actually used — e.g. `codeExecution` may read `false` in a file that contains code-execution chunks.
-- Other attachments (uploaded images, inline files) are rendered as a generic `[Image/Media Attachment]` placeholder.
+- Inline image/file parts (uploaded directly into a message rather than referenced via Drive) are rendered as a generic `[Image/Media Attachment]` placeholder.
 
 ## Stack
 

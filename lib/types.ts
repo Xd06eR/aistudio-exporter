@@ -11,11 +11,36 @@ export type ModelPersona =
 
 export type OutputFormat = "markdown" | "xml" | "html";
 
+export type AttachmentType = "youtube" | "drive-image" | "drive-document";
+
 export interface ContentPart {
-  kind: "text" | "thinking" | "media" | "code" | "code-result";
+  kind:
+    | "text"
+    | "thinking"
+    | "media"
+    | "code"
+    | "code-result"
+    | "attachment"
+    | "json";
   text?: string;
   codeLanguage?: string;
   codeOutcome?: string; // e.g. "OUTCOME_OK", "OUTCOME_FAILED"
+  attachmentType?: AttachmentType;
+  attachmentId?: string;
+}
+
+// Search-grounded responses ship `webSearchQueries` (what was searched) and
+// `groundingSources` (where citations came from). `corroborationSegments`
+// also exists but maps char offsets to footnote numbers — not used here.
+export interface GroundingSource {
+  referenceNumber?: number;
+  uri: string;
+  title?: string;
+}
+
+export interface Grounding {
+  webSearchQueries: string[];
+  sources: GroundingSource[];
 }
 
 export interface Turn {
@@ -23,6 +48,7 @@ export interface Turn {
   parts: ContentPart[];
   // Gemini finish reasons: "STOP" is normal; others (MAX_TOKENS, SAFETY, …) are flagged in output.
   finishReason?: string;
+  grounding?: Grounding;
 }
 
 export interface Example {

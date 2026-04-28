@@ -1,4 +1,4 @@
-import type { ModelPersona, Role } from "../types";
+import type { ContentPart, ModelPersona, Role } from "../types";
 
 export function getRoleName(role: Role, persona: ModelPersona): string {
   const isUser = role === "user";
@@ -39,4 +39,21 @@ export function escapeXmlAttr(text: string): string {
     .replace(/&/g, "&amp;")
     .replace(/"/g, "&quot;")
     .replace(/</g, "&lt;");
+}
+
+// AI Studio exports only the reference (ID) for user attachments — never the
+// content itself. Render a labelled placeholder so reader/LLM context stays
+// coherent across follow-up turns.
+export function renderAttachmentLabel(part: ContentPart): string {
+  const id = part.attachmentId || "unknown";
+  switch (part.attachmentType) {
+    case "youtube":
+      return `📎 YouTube video attached: https://www.youtube.com/watch?v=${id}`;
+    case "drive-image":
+      return `📎 Image attached (Google Drive ID: ${id})`;
+    case "drive-document":
+      return `📎 Document attached (Google Drive ID: ${id})`;
+    default:
+      return `📎 Attachment (ID: ${id})`;
+  }
 }

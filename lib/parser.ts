@@ -1,9 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // AI Studio's export schema is unofficial and drifts; we use `any` internally.
 import type {
+  AttachmentType,
   ContentPart,
   ConversationIR,
   Example,
+  Grounding,
+  GroundingSource,
   RunSettings,
   Turn,
 } from "./types";
@@ -29,10 +32,17 @@ export function parseAIStudioExport(
   }
 
   const history = jsonContent.history || jsonContent.chunkedPrompt?.chunks;
-  const turns: Turn[] = [];
+  const chunkTurns: Turn[] = [];
   if (Array.isArray(history)) {
     for (const turn of history) {
-      const parts = extractParts(turn);
+      let parts = extractParts(turn);
+      // Structured Output ("isJson: true"): the model was forced to return
+      // valid JSON. Wrap text parts so they render as a json code block.
+      if (turn.isJson === true) {
+        parts = parts.map((p) =>
+          p.kind === "text" ? { ...p, kind: "json" as const } : p,
+        );
+      }
       if (parts.length === 0) continue;
       const t: Turn = {
         role: turn.role === "user" ? "user" : "model",
@@ -41,9 +51,15 @@ export function parseAIStudioExport(
       if (turn.finishReason && turn.finishReason !== "STOP") {
         t.finishReason = turn.finishReason;
       }
-      turns.push(t);
+      const grounding = extractGrounding(turn.grounding);
+      if (grounding) t.grounding = grounding;
+      chunkTurns.push(t);
     }
   }
+  // AI Studio splits one logical response into multiple chunks (e.g.
+  // thinking → code → code-result → text, all model). Merge consecutive
+  // same-role chunks so each IR turn represents one conversational turn.
+  const turns = mergeConsecutiveTurns(chunkTurns);
 
   let promptParts: ContentPart[] | null = null;
   if (Array.isArray(jsonContent.prompt?.parts)) {
@@ -83,9 +99,65 @@ function extractParts(turn: any): ContentPart[] {
   if (turn.text) {
     return [{ kind: "text", text: turn.text }];
   }
-  // Chunks whose only content is an unresolvable attachment (driveDocument,
-  // driveImage, youtubeVideo) are dropped — follow-ups referencing them lose context.
+  // AI Studio puts user attachments at the chunk level with no parts/text.
+  // Emit a placeholder so follow-up turns ("what is in this video?") read
+  // coherently — the underlying file content isn't in the export.
+  const attachment = extractAttachment(turn);
+  if (attachment) return [attachment];
   return [];
+}
+
+function extractAttachment(turn: any): ContentPart | null {
+  const candidates: { type: AttachmentType; ref: any }[] = [
+    { type: "youtube", ref: turn.youtubeVideo },
+    { type: "drive-image", ref: turn.driveImage },
+    { type: "drive-document", ref: turn.driveDocument },
+  ];
+  for (const { type, ref } of candidates) {
+    if (ref && typeof ref.id === "string" && ref.id) {
+      return { kind: "attachment", attachmentType: type, attachmentId: ref.id };
+    }
+  }
+  return null;
+}
+
+function mergeConsecutiveTurns(turns: Turn[]): Turn[] {
+  const out: Turn[] = [];
+  for (const t of turns) {
+    const prev = out[out.length - 1];
+    if (prev && prev.role === t.role) {
+      prev.parts.push(...t.parts);
+      // finishReason and grounding only appear on the last chunk of a
+      // streaming response — overwrite so the merged turn carries them.
+      if (t.finishReason) prev.finishReason = t.finishReason;
+      if (t.grounding) prev.grounding = t.grounding;
+    } else {
+      out.push({ ...t, parts: [...t.parts] });
+    }
+  }
+  return out;
+}
+
+function extractGrounding(g: any): Grounding | undefined {
+  if (!g || typeof g !== "object") return undefined;
+  const queries = Array.isArray(g.webSearchQueries)
+    ? g.webSearchQueries.filter((q: any): q is string => typeof q === "string")
+    : [];
+  const sources: GroundingSource[] = Array.isArray(g.groundingSources)
+    ? g.groundingSources
+        .map((s: any): GroundingSource | null => {
+          if (!s || typeof s.uri !== "string" || !s.uri) return null;
+          return {
+            uri: s.uri,
+            title: typeof s.title === "string" ? s.title : undefined,
+            referenceNumber:
+              typeof s.referenceNumber === "number" ? s.referenceNumber : undefined,
+          };
+        })
+        .filter((s: GroundingSource | null): s is GroundingSource => s !== null)
+    : [];
+  if (queries.length === 0 && sources.length === 0) return undefined;
+  return { webSearchQueries: queries, sources };
 }
 
 function extractPartsArray(parts: any[]): ContentPart[] {
