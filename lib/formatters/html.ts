@@ -1,10 +1,19 @@
 import { marked } from "marked";
+import DOMPurify from "dompurify";
 import type { ConversationIR, FormatOptions } from "../types";
 import { toMarkdown } from "./markdown";
 
 export function toHtml(ir: ConversationIR, options: FormatOptions): string {
   const md = toMarkdown(ir, options);
-  const body = marked.parse(md, { async: false, gfm: true }) as string;
+  // `async: false` returns a string synchronously; guard so a future marked or
+  // plugin that returns a Promise fails loudly instead of emitting "[object Promise]".
+  const rendered = marked.parse(md, { async: false, gfm: true });
+  if (typeof rendered !== "string") {
+    throw new Error("marked.parse returned a non-string; expected synchronous output.");
+  }
+  // marked does not sanitize. Strip scripts/event handlers/javascript: URLs from
+  // the file-derived HTML so the downloaded document can't execute injected code.
+  const body = DOMPurify.sanitize(rendered);
   return wrapHtml(ir.title, body);
 }
 
@@ -19,6 +28,10 @@ function wrapHtml(title: string, body: string): string {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Content below is derived from the uploaded export and is NOT HTML-sanitized.
+     This CSP blocks script execution (inline handlers, <script>, javascript: URLs)
+     so a malicious export cannot run code when the downloaded file is opened. -->
+<meta http-equiv="Content-Security-Policy" content="script-src 'none'; object-src 'none'; base-uri 'none'">
 <title>${safeTitle}</title>
 <style>
   :root { color-scheme: light; }
