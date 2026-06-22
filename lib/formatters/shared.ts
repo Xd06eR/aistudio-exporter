@@ -37,8 +37,10 @@ export function escapeXml(text: string): string {
 export function escapeXmlAttr(text: string): string {
   return text
     .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
-    .replace(/</g, "&lt;");
+    .replace(/'/g, "&apos;");
 }
 
 // AI Studio exports only the reference (ID) for user attachments — never the
