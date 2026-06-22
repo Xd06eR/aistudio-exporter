@@ -1,5 +1,8 @@
 import { marked } from "marked";
-import DOMPurify from "dompurify";
+// isomorphic-dompurify provides a jsdom-backed window on the server so sanitize
+// actually runs during SSR — plain dompurify silently passes input through when
+// no window exists, which would ship unsanitized HTML in exported files.
+import DOMPurify from "isomorphic-dompurify";
 import type { ConversationIR, FormatOptions } from "../types";
 import { toMarkdown } from "./markdown";
 
