@@ -28,9 +28,8 @@ function wrapHtml(title: string, body: string): string {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- Content below is derived from the uploaded export and is NOT HTML-sanitized.
-     This CSP blocks script execution (inline handlers, <script>, javascript: URLs)
-     so a malicious export cannot run code when the downloaded file is opened. -->
+<!-- The body is sanitized with DOMPurify before embedding; this CSP is a
+     defense-in-depth backstop that blocks inline scripts and unsafe URL schemes. -->
 <meta http-equiv="Content-Security-Policy" content="script-src 'none'; object-src 'none'; base-uri 'none'">
 <title>${safeTitle}</title>
 <style>
