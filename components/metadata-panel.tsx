@@ -28,7 +28,9 @@ export function MetadataPanel({ settings }: MetadataPanelProps) {
     <div className="w-full max-w-4xl mx-auto mt-4 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
       <button
         onClick={() => setExpanded((v) => !v)}
-        className="w-full flex items-center justify-between px-6 py-4 hover:bg-slate-50 transition-colors text-left"
+        aria-expanded={expanded}
+        aria-controls="run-settings-detail"
+        className="w-full flex items-center justify-between px-6 py-4 hover:bg-slate-50 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
       >
         <div className="flex items-center gap-3 flex-wrap">
           {expanded ? (
@@ -63,7 +65,7 @@ export function MetadataPanel({ settings }: MetadataPanelProps) {
       </button>
 
       {expanded && (
-        <div className="px-6 pb-5 pt-1 border-t border-slate-100 bg-slate-50/50">
+        <div id="run-settings-detail" className="px-6 pb-5 pt-1 border-t border-slate-100 bg-slate-50/50">
           <dl className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3 mt-4">
             <MetaField label="Model" value={prettyModel} mono />
             <MetaField label="Thinking Level" value={formatThinkingLevel(settings.thinkingLevel)} />
@@ -81,6 +83,7 @@ export function MetadataPanel({ settings }: MetadataPanelProps) {
               {tools.map((t) => (
                 <span
                   key={t.label}
+                  aria-label={`${t.label}: ${t.enabled ? "enabled" : "disabled"}`}
                   className={`px-2.5 py-1 text-xs font-medium rounded-full border ${
                     t.enabled
                       ? "bg-emerald-50 text-emerald-700 border-emerald-100"

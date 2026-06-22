@@ -42,7 +42,7 @@ export function FileUploader({ onFileSelect }: FileUploaderProps) {
 
   return (
     <div
-      className={`relative w-full max-w-2xl mx-auto p-8 border-2 border-dashed rounded-2xl transition-colors duration-200 ${
+      className={`relative w-full max-w-2xl mx-auto p-8 border-2 border-dashed rounded-2xl transition-colors duration-200 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 ${
         isDragging
           ? "border-indigo-500 bg-indigo-50"
           : "border-slate-300 hover:border-slate-400 bg-white"
@@ -68,7 +68,7 @@ export function FileUploader({ onFileSelect }: FileUploaderProps) {
             Drop your AI Studio export here
           </p>
           <p className="text-sm text-slate-500 mt-1">
-            Accepts .json files exported from Google AI Studio
+            Accepts .json or .txt exports from Google AI Studio
           </p>
         </div>
         <div className="px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-full">
