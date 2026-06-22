@@ -65,12 +65,6 @@ export function toXml(ir: ConversationIR, options: FormatOptions): string {
     lines.push(`  </examples>`);
   }
 
-  if (ir.rawFallback) {
-    lines.push(`  <raw-data>`);
-    lines.push(escapeXml(JSON.stringify(ir.rawFallback, null, 2)));
-    lines.push(`  </raw-data>`);
-  }
-
   lines.push(`</conversation>`);
   return lines.join("\n");
 }

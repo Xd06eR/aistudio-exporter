@@ -55,13 +55,6 @@ export function toMarkdown(ir: ConversationIR, options: FormatOptions): string {
     });
   }
 
-  if (ir.rawFallback) {
-    md += `---\n\n`;
-    const label = Array.isArray(ir.rawFallback) ? "Data" : "Raw Data";
-    md += `**📦 ${label}**\n\n`;
-    md += "```json\n" + JSON.stringify(ir.rawFallback, null, 2) + "\n```\n\n";
-  }
-
   return md.trim();
 }
 
@@ -98,7 +91,11 @@ function processText(text: string, options: FormatOptions): string {
   if (!text) return "";
   if (!options.includeThinking) return stripThink(text);
   return text
-    .replace(/<think>([\s\S]*?)<\/think>/gi, "> **Thinking:**\n> $1\n\n")
+    .replace(/<think>([\s\S]*?)<\/think>/gi, (_match, thought: string) => {
+      // Prefix every line of the thought so multi-line content stays inside the blockquote.
+      const quoted = thought.split("\n").join("\n> ");
+      return `> **Thinking:**\n> ${quoted}\n\n`;
+    })
     .trim();
 }
 

@@ -80,7 +80,6 @@ export interface ConversationIR {
   promptParts: ContentPart[] | null;
   examples: Example[] | null;
   runSettings: RunSettings | null;
-  rawFallback: unknown | null;
 }
 
 export interface FormatOptions {

@@ -78,8 +78,16 @@ export function parseAIStudioExport(
   const runSettings = extractRunSettings(jsonContent.runSettings);
 
   const hasKnownFormat =
-    turns.length > 0 || promptParts !== null || (examples && examples.length > 0);
-  const rawFallback = hasKnownFormat ? null : jsonContent;
+    turns.length > 0 ||
+    promptParts !== null ||
+    (examples !== null && examples.length > 0) ||
+    systemInstructions !== null;
+
+  if (!hasKnownFormat) {
+    throw new Error(
+      'This file doesn\'t look like a Google AI Studio export. Expected a JSON file with a "history", "chunkedPrompt", "prompt", or "examples" field.',
+    );
+  }
 
   return {
     title,
@@ -88,7 +96,6 @@ export function parseAIStudioExport(
     promptParts,
     examples,
     runSettings,
-    rawFallback,
   };
 }
 
@@ -126,11 +133,15 @@ function mergeConsecutiveTurns(turns: Turn[]): Turn[] {
   for (const t of turns) {
     const prev = out[out.length - 1];
     if (prev && prev.role === t.role) {
-      prev.parts.push(...t.parts);
       // finishReason and grounding only appear on the last chunk of a
-      // streaming response — overwrite so the merged turn carries them.
-      if (t.finishReason) prev.finishReason = t.finishReason;
-      if (t.grounding) prev.grounding = t.grounding;
+      // streaming response — carry them onto the merged turn. Rebuild the
+      // turn immutably instead of mutating the object already in `out`.
+      out[out.length - 1] = {
+        ...prev,
+        parts: [...prev.parts, ...t.parts],
+        finishReason: t.finishReason ?? prev.finishReason,
+        grounding: t.grounding ?? prev.grounding,
+      };
     } else {
       out.push({ ...t, parts: [...t.parts] });
     }
