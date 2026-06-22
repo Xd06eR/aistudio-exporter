@@ -59,6 +59,11 @@ export function ClientPage() {
   const handleFileSelect = async (file: File) => {
     setFileError(null);
     try {
+      // Guard against a huge accidental file freezing the tab while reading/parsing.
+      const MAX_FILE_BYTES = 25 * 1024 * 1024; // 25 MB
+      if (file.size > MAX_FILE_BYTES) {
+        throw new Error("File is too large (over 25 MB). Please upload a Google AI Studio export.");
+      }
       const text = await file.text();
       let jsonContent: unknown;
       try {
@@ -104,7 +109,7 @@ export function ClientPage() {
 
             <button
               onClick={handleReset}
-              className="px-3 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-colors whitespace-nowrap"
+              className="px-3 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
             >
               New File
             </button>
