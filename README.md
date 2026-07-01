@@ -1,5 +1,7 @@
 # Google AI Studio Exporter
 
+**Live:** [aistudioexporter.vercel.app](https://aistudioexporter.vercel.app)
+
 A small web tool that converts Google AI Studio conversation exports (`.json`) into clean **Markdown**, **XML**, or **HTML** — ready to paste into another chatbot or agent to continue the work.
 
 Exports from [aistudio.google.com](https://aistudio.google.com) are intended for Gemini only. This tool restructures them into portable formats suitable for cross-chatbot continuation.
