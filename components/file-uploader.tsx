@@ -53,7 +53,6 @@ export function FileUploader({ onFileSelect }: FileUploaderProps) {
     >
       <input
         type="file"
-        accept=".json,.txt"
         onChange={handleFileInput}
         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
         aria-label="Upload AI Studio export file"
@@ -68,7 +67,7 @@ export function FileUploader({ onFileSelect }: FileUploaderProps) {
             Drop your AI Studio export here
           </p>
           <p className="text-sm text-slate-500 mt-1">
-            Accepts .json or .txt exports from Google AI Studio
+            AI Studio exports work as-is — no file extension needed
           </p>
         </div>
         <div className="px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-full">
