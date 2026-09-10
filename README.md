@@ -2,17 +2,20 @@
 
 **Live:** [aistudioexporter.vercel.app](https://aistudioexporter.vercel.app)
 
-A small web tool that converts Google AI Studio conversation exports (`.json`) into clean **Markdown**, **XML**, or **HTML** — ready to paste into another chatbot or agent to continue the work.
+A small web tool that converts Google AI Studio conversation exports into clean **Markdown**, **XML**, **HTML**, or **Plain Text** — ready to paste into another chatbot or agent to continue the work.
 
 Exports from [aistudio.google.com](https://aistudio.google.com) are intended for Gemini only. This tool restructures them into portable formats suitable for cross-chatbot continuation.
 
 <!-- HERO -->
 ![Landing screen](./public/screenshots/01-upload.png)
-*Drop an AI Studio `.json` export onto the drop zone, or browse for one.*
+*Drop an AI Studio export onto the drop zone, or browse for one.*
 
 ## Features
 
 - **Drag-and-drop upload** — the preview re-renders live when any option changes.
+- **Turn selection** — export any subset of the conversation: checkboxes per turn, ranges (e.g. turns 1–50 then 60–70), or by role.
+- **Chunked export** — split the output into size-bounded parts (character budget) so long conversations paste into a chatbot without truncation; copy or download each part, with optional `Part i/N` headers for continuation context.
+- **Live size counter** — exact character count plus an approximate token estimate of what will be exported.
 - **Thinking & system instructions toggles** — keep them or strip them for a cleaner paste.
 - **Role labels** — pick the chatbot you're pasting into (Gemini, ChatGPT, Claude, Grok, Llama, Mistral, or DeepSeek) and the labels match.
 - **Streamed prose reassembled** — merged so Chinese / Japanese / continuous prose does not break mid-sentence.
@@ -20,28 +23,30 @@ Exports from [aistudio.google.com](https://aistudio.google.com) are intended for
 - **Attachments labelled** — YouTube, Drive image, and Drive document references are surfaced as inline placeholders so follow-up turns ("what is in this video?") still read coherently.
 - **Search grounding rendered** — when Google Search is used, the searches performed and source citations are appended to the response.
 - **Structured Output preserved** — when Gemini's "Structured Output" toggle was on, the response is rendered inside a `json` code block.
-- **Copy or download** — correct file extension and MIME type per format.
+- **Copy or download** — correct file extension and MIME type per format; chunked exports download as `title.part-i-of-N.ext`.
 
 ## Output Formats
 
 - **Markdown** — universal and portable.
 - **XML** — structured `<turn role="user" | "assistant">`. Good for Claude-style re-ingestion.
 - **HTML** — self-contained styled document, openable in any browser.
+- **Plain Text** — no markdown syntax; all-caps speaker tags and labels.
 
 ## Preview
 
-After upload — toggle thinking and system instructions, pick an output format and role labels, inspect run settings, then preview, copy, or download.
+After upload — select the turns to export, toggle thinking and system instructions, pick an output format and role labels, optionally split into chunks, inspect run settings, then preview, copy, or download.
 
 ![Output preview](./public/screenshots/02-preview.png)
 
 ## How It Works
 
-Parse once, format many.
+Parse once, format many. Turn selection and chunk splitting sit between the IR and the formatters.
 
 ```text
-JSON ─▶ parser ─▶ IR ─┬─▶ markdown
-                      ├─▶ xml
-                      └─▶ html
+JSON ─▶ parser ─▶ IR ─▶ select turns ─▶ chunk ─┬─▶ markdown
+                                                 ├─▶ xml
+                                                 ├─▶ html
+                                                 └─▶ plain text
 ```
 
 Adding a new format is one file in `lib/formatters/` plus one entry in the registry.
@@ -53,17 +58,24 @@ aistudio-exporter/
 ├── app/                    # Next.js App Router pages
 ├── components/             # React UI components
 │   ├── client-page.tsx
+│   ├── chunk-controls.tsx
 │   ├── file-uploader.tsx
 │   ├── metadata-panel.tsx
-│   └── output-preview.tsx
+│   ├── output-preview.tsx
+│   └── turn-selector.tsx
 ├── lib/
 │   ├── parser.ts           # JSON export → intermediate representation (IR)
 │   ├── types.ts            # IR types (ConversationIR, Turn, ContentPart, …)
+│   ├── turn-selection.ts   # Selection algebra + IR filtering
+│   ├── chunking.ts         # Character-budget chunk splitting
+│   ├── tokens.ts           # Char count + token estimate
+│   ├── filename.ts         # Download filename sanitization
 │   └── formatters/
 │       ├── index.ts        # Registry of output formats
 │       ├── markdown.ts
 │       ├── xml.ts
 │       ├── html.ts
+│       ├── plain-text.ts
 │       └── shared.ts
 ├── public/                 # Static assets (screenshots, icons)
 └── package.json
@@ -71,7 +83,7 @@ aistudio-exporter/
 
 ## Prerequisites
 
-1. **Node.js** v20 or higher.
+1. **Node.js** v22.12 or higher.
 2. **npm** (bundled with Node.js).
 
 ## Setup
@@ -89,16 +101,23 @@ npm run dev
 ```
 
 ### 3. Open the app
-Visit [http://localhost:3000](http://localhost:3000) and drop in a `.json` exported from Google AI Studio (see below for how to get one).
+Visit [http://localhost:3000](http://localhost:3000) and drop in a file exported from Google AI Studio (see below for how to get one).
+
+## Testing
+
+```bash
+npm test              # run the unit suite
+npm run test:coverage # with a per-file coverage report
+```
 
 ## Exporting from Google AI Studio
 
-Google AI Studio autosaves every prompt to your Google Drive — there is no direct "Export" button in the AI Studio UI. To get the `.json` file:
+Google AI Studio autosaves every prompt to your Google Drive — there is no direct "Export" button in the AI Studio UI. To get the file:
 
 1. Open [Google Drive](https://drive.google.com).
 2. Go to the **Google AI Studio** folder (created automatically the first time you save a prompt in AI Studio).
 3. Find the prompt you want to export — files are named after the prompt title.
-4. Right-click the file → **Download**. It downloads as a `.json` file.
+4. Right-click the file → **Download**. The file has no extension; this tool accepts it as-is.
 5. Drop that file into this tool.
 
 > **Tip:** if you don't see the folder, open a prompt in [aistudio.google.com](https://aistudio.google.com) and click **Save** once. Drive will create the folder on first save.
@@ -109,6 +128,7 @@ Google AI Studio autosaves every prompt to your Google Drive — there is no dir
 - **Grounding citations** are rendered as a list of search queries and source links after the response. Inline footnote mapping (using `corroborationSegments` char offsets) is not implemented.
 - **Run settings** displayed in the metadata panel reflect the current AI Studio toggle state at the time of export, not what the conversation actually used — e.g. `codeExecution` may read `false` in a file that contains code-execution chunks.
 - Inline image/file parts (uploaded directly into a message rather than referenced via Drive) are rendered as a generic `[Image/Media Attachment]` placeholder.
+- **Token counts are estimates** — roughly one token per CJK character and one per four Latin characters. They are a paste-size sanity check, not an exact tokenizer count for any specific model. Chunk budgets are enforced in exact characters.
 
 ## Stack
 
