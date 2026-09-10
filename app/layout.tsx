@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Google AI Studio Exporter",
   description:
-    "Export Google AI Studio conversations to Markdown, XML, or HTML — ready to paste into any chatbot or agent.",
+    "Export Google AI Studio conversations to Markdown, XML, HTML, or Plain Text — ready to paste into any chatbot or agent.",
 };
 
 export default function RootLayout({

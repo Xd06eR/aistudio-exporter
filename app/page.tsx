@@ -9,8 +9,9 @@ export default function Home() {
             Google AI Studio Exporter
           </h1>
           <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-            Turn your Google AI Studio conversations into Markdown, XML, or HTML —
-            ready to paste into any chatbot or agent to continue the work.
+            Turn your Google AI Studio conversations into Markdown, XML, HTML, or
+            Plain Text — ready to paste into any chatbot or agent to continue the
+            work.
           </p>
         </div>
         <ClientPage />
