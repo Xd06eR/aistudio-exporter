@@ -3,17 +3,35 @@
 import { useEffect, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Download, Copy, Check } from "lucide-react";
+import { Download, Copy, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { formatters } from "@/lib/formatters";
+import { sanitizeFilename } from "@/lib/filename";
 import type { OutputFormat } from "@/lib/types";
+import type { OutputMeasure } from "@/lib/tokens";
+
+interface ChunkNav {
+  index: number;
+  total: number;
+  onSelect: (index: number) => void;
+}
 
 interface OutputPreviewProps {
   content: string;
   filename: string;
   format: OutputFormat;
+  measure: OutputMeasure;
+  chunkNav?: ChunkNav;
+  isOversized?: boolean;
 }
 
-export function OutputPreview({ content, filename, format }: OutputPreviewProps) {
+export function OutputPreview({
+  content,
+  filename,
+  format,
+  measure,
+  chunkNav,
+  isOversized = false,
+}: OutputPreviewProps) {
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(false);
   const [viewMode, setViewMode] = useState<"rendered" | "raw">("rendered");
@@ -41,9 +59,13 @@ export function OutputPreview({ content, filename, format }: OutputPreviewProps)
   const handleDownload = () => {
     const url = URL.createObjectURL(new Blob([content], { type: formatInfo.mimeType }));
     try {
+      const base = sanitizeFilename(filename.replace(".json", ""));
+      const partSuffix = chunkNav
+        ? `.part-${chunkNav.index + 1}-of-${chunkNav.total}`
+        : "";
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${filename.replace(".json", "")}.${formatInfo.extension}`;
+      a.download = `${base}${partSuffix}.${formatInfo.extension}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -55,10 +77,46 @@ export function OutputPreview({ content, filename, format }: OutputPreviewProps)
   return (
     <div className="w-full max-w-4xl mx-auto mt-8 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
       <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">
-        <h3 className="text-sm font-medium text-slate-700 truncate max-w-xs">
-          {filename}
-        </h3>
+        <div className="flex flex-col min-w-0">
+          <h3 className="text-sm font-medium text-slate-700 truncate max-w-xs">
+            {filename}
+          </h3>
+          <span className="text-xs text-slate-400 whitespace-nowrap">
+            {measure.chars.toLocaleString()} chars · ≈{measure.tokens.toLocaleString()} tokens
+          </span>
+        </div>
         <div className="flex items-center gap-2">
+          {chunkNav && (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => chunkNav.onSelect(chunkNav.index - 1)}
+                disabled={chunkNav.index <= 0}
+                aria-label="Previous chunk"
+                className="p-1.5 text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-colors disabled:opacity-40 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-xs font-medium text-slate-600 tabular-nums whitespace-nowrap">
+                Chunk {chunkNav.index + 1}/{chunkNav.total}
+              </span>
+              <button
+                onClick={() => chunkNav.onSelect(chunkNav.index + 1)}
+                disabled={chunkNav.index >= chunkNav.total - 1}
+                aria-label="Next chunk"
+                className="p-1.5 text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-colors disabled:opacity-40 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+          {isOversized && (
+            <span
+              className="px-2 py-0.5 text-xs font-medium bg-amber-50 text-amber-700 rounded-full border border-amber-200 whitespace-nowrap"
+              title="A single turn exceeds the chunk budget"
+            >
+              Oversized
+            </span>
+          )}
           {canRender && (
             <div className="flex items-center rounded-lg border border-slate-200 overflow-hidden">
               <button

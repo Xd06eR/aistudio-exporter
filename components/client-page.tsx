@@ -4,21 +4,43 @@ import { useState, useMemo } from "react";
 import { FileUploader } from "./file-uploader";
 import { OutputPreview } from "./output-preview";
 import { MetadataPanel } from "./metadata-panel";
+import { TurnSelector } from "./turn-selector";
+import { ChunkControls } from "./chunk-controls";
 import { parseAIStudioExport } from "@/lib/parser";
 import { formatters } from "@/lib/formatters";
-import type { ModelPersona, OutputFormat, RunSettings } from "@/lib/types";
+import { createFullSelection, filterTurns } from "@/lib/turn-selection";
+import {
+  buildChunks,
+  computeTurnWeights,
+  DEFAULT_CHUNK_BUDGET,
+  parseBudgetInput,
+  type ConversationChunk,
+} from "@/lib/chunking";
+import { measureOutput, type OutputMeasure } from "@/lib/tokens";
+import type {
+  ConversationIR,
+  ModelPersona,
+  OutputFormat,
+  RunSettings,
+} from "@/lib/types";
 
-interface OutputData {
-  title: string;
+interface SingleResult {
+  kind: "single";
   content: string;
-  format: OutputFormat;
+  measure: OutputMeasure;
 }
 
-interface ComputeResult {
-  output: OutputData | null;
-  error: string | null;
-  runSettings: RunSettings | null;
+interface ChunkedResult {
+  kind: "chunked";
+  chunks: ConversationChunk[];
 }
+
+interface FailedResult {
+  kind: "failed";
+  error: string;
+}
+
+type OutputResult = SingleResult | ChunkedResult | FailedResult;
 
 export function ClientPage() {
   const [rawJson, setRawJson] = useState<{ content: unknown; filename: string } | null>(null);
@@ -29,31 +51,107 @@ export function ClientPage() {
   const [modelPersona, setModelPersona] = useState<ModelPersona>("gemini");
   const [outputFormat, setOutputFormat] = useState<OutputFormat>("markdown");
 
-  const { output, error: parseError, runSettings }: ComputeResult = useMemo(() => {
-    if (!rawJson) return { output: null, error: null, runSettings: null };
+  // null = every turn selected; a new file implicitly resets to full.
+  const [selectedTurns, setSelectedTurns] = useState<Set<number> | null>(null);
+  const [isChunkingEnabled, setChunkingEnabled] = useState(false);
+  const [chunkBudgetInput, setChunkBudgetInput] = useState(
+    String(DEFAULT_CHUNK_BUDGET),
+  );
+  const [includePartHeader, setIncludePartHeader] = useState(true);
+  const [activeChunkIndex, setActiveChunkIndex] = useState(0);
+
+  // Parse once per file: selection clicks and option toggles must never
+  // re-run parseAIStudioExport on a multi-megabyte JSON payload.
+  const parsed = useMemo(() => {
+    if (!rawJson) return null;
     try {
-      const ir = parseAIStudioExport(rawJson.content, rawJson.filename);
-      const content = formatters[outputFormat].format(ir, {
-        includeThinking,
-        modelPersona,
-        showSystemInstructions,
-      });
       return {
-        output: { title: ir.title, content, format: outputFormat },
-        error: null,
-        runSettings: ir.runSettings,
+        ir: parseAIStudioExport(rawJson.content, rawJson.filename),
+        error: null as string | null,
       };
     } catch (err) {
       const msg = err instanceof Error ? err.message : "An error occurred while parsing the file.";
-      return { output: null, error: msg, runSettings: null };
+      return { ir: null as ConversationIR | null, error: msg };
     }
-  }, [rawJson, outputFormat, includeThinking, modelPersona, showSystemInstructions]);
+  }, [rawJson]);
 
-  const error = fileError || parseError;
+  const ir = parsed?.ir ?? null;
+  const runSettings: RunSettings | null = ir?.runSettings ?? null;
+
+  const effectiveSelection = useMemo(
+    () => (ir ? selectedTurns ?? createFullSelection(ir.turns.length) : null),
+    [ir, selectedTurns],
+  );
+
+  // Weights depend on the selected turns and format options but NOT on the
+  // budget input — typing in the budget field must not re-run the per-turn
+  // standalone formatting pass.
+  const weights = useMemo(() => {
+    if (!ir || !effectiveSelection || !isChunkingEnabled) return null;
+    return computeTurnWeights(filterTurns(ir, effectiveSelection), outputFormat, {
+      includeThinking,
+      modelPersona,
+      showSystemInstructions,
+    });
+  }, [
+    ir,
+    effectiveSelection,
+    isChunkingEnabled,
+    outputFormat,
+    includeThinking,
+    modelPersona,
+    showSystemInstructions,
+  ]);
+
+  const output: OutputResult | null = useMemo(() => {
+    if (!ir || !effectiveSelection) return null;
+    try {
+      const selectedIr = filterTurns(ir, effectiveSelection);
+      const formatOptions = { includeThinking, modelPersona, showSystemInstructions };
+      if (!isChunkingEnabled) {
+        const content = formatters[outputFormat].format(selectedIr, formatOptions);
+        return { kind: "single", content, measure: measureOutput(content) };
+      }
+      if (!weights) return { kind: "failed", error: "Chunk weights unavailable." };
+      const chunks = buildChunks(selectedIr, outputFormat, formatOptions, {
+        budget: parseBudgetInput(chunkBudgetInput),
+        includePartHeader,
+      }, weights);
+      return { kind: "chunked", chunks };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "An error occurred while formatting the output.";
+      return { kind: "failed", error: msg };
+    }
+  }, [
+    ir,
+    effectiveSelection,
+    isChunkingEnabled,
+    outputFormat,
+    includeThinking,
+    modelPersona,
+    showSystemInstructions,
+    chunkBudgetInput,
+    includePartHeader,
+    weights,
+  ]);
+
+  const error =
+    fileError ||
+    parsed?.error ||
+    (output?.kind === "failed" ? output.error : null);
+
+  // Budget or selection changes can shrink the chunk list below the stored
+  // index — clamp as a derived value instead of setState during render.
+  const activeChunk =
+    output?.kind === "chunked" && output.chunks.length > 0
+      ? output.chunks[Math.min(activeChunkIndex, output.chunks.length - 1)]
+      : null;
 
   const handleReset = () => {
     setFileError(null);
     setRawJson(null);
+    setSelectedTurns(null);
+    setActiveChunkIndex(0);
   };
 
   const handleFileSelect = async (file: File) => {
@@ -72,6 +170,8 @@ export function ClientPage() {
         throw new Error("Invalid JSON file. Please upload a valid AI Studio export.");
       }
       setRawJson({ content: jsonContent, filename: file.name });
+      setSelectedTurns(null);
+      setActiveChunkIndex(0);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "An error occurred while reading the file.";
       setFileError(msg);
@@ -105,6 +205,15 @@ export function ClientPage() {
                 />
                 <span className="text-sm font-medium text-slate-700">Show System Instructions</span>
               </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isChunkingEnabled}
+                  onChange={(e) => setChunkingEnabled(e.target.checked)}
+                  className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                />
+                <span className="text-sm font-medium text-slate-700">Split into Chunks</span>
+              </label>
             </div>
 
             <button
@@ -129,6 +238,7 @@ export function ClientPage() {
                 <option value="markdown">Markdown (.md)</option>
                 <option value="xml">XML (.xml)</option>
                 <option value="html">HTML (.html)</option>
+                <option value="plain-text">Plain Text (.txt)</option>
               </select>
             </div>
 
@@ -155,10 +265,29 @@ export function ClientPage() {
 
           {outputFormat === "xml" && (
             <p className="text-xs text-slate-500 -mt-2">
-              Note: XML exports use <code className="px-1 py-0.5 bg-slate-100 rounded text-slate-700">role=&quot;user&quot;</code> and <code className="px-1 py-0.5 bg-slate-100 rounded text-slate-700">role=&quot;assistant&quot;</code> for maximum LLM compatibility. The Role Labels setting above only affects Markdown and HTML exports.
+              Note: XML exports use <code className="px-1 py-0.5 bg-slate-100 rounded text-slate-700">role=&quot;user&quot;</code> and <code className="px-1 py-0.5 bg-slate-100 rounded text-slate-700">role=&quot;assistant&quot;</code> for maximum LLM compatibility. The Role Labels setting above only affects Markdown, Plain Text, and HTML exports.
             </p>
           )}
+
+          {isChunkingEnabled && (
+            <ChunkControls
+              budgetInput={chunkBudgetInput}
+              onBudgetInputChange={setChunkBudgetInput}
+              includePartHeader={includePartHeader}
+              onIncludePartHeaderChange={setIncludePartHeader}
+              chunkCount={output?.kind === "chunked" ? output.chunks.length : null}
+            />
+          )}
         </div>
+      )}
+
+      {ir && effectiveSelection && (
+        <TurnSelector
+          key={rawJson?.filename}
+          turns={ir.turns}
+          selection={effectiveSelection}
+          onSelectionChange={setSelectedTurns}
+        />
       )}
 
       {error && (
@@ -167,13 +296,40 @@ export function ClientPage() {
         </div>
       )}
 
-      {output && runSettings && <MetadataPanel settings={runSettings} />}
+      {output && output.kind !== "failed" && runSettings && (
+        <MetadataPanel settings={runSettings} />
+      )}
 
-      {output && (
+      {output?.kind === "single" && (
         <OutputPreview
           content={output.content}
-          filename={output.title}
-          format={output.format}
+          filename={ir?.title ?? ""}
+          format={outputFormat}
+          measure={output.measure}
+        />
+      )}
+
+      {output?.kind === "chunked" && output.chunks.length === 0 && (
+        <div className="mt-8 p-4 bg-amber-50 text-amber-700 rounded-xl border border-amber-200 max-w-2xl w-full text-center">
+          No turns selected — select at least one turn to export.
+        </div>
+      )}
+
+      {activeChunk && output?.kind === "chunked" && (
+        <OutputPreview
+          content={activeChunk.content}
+          filename={ir?.title ?? ""}
+          format={outputFormat}
+          measure={{
+            chars: activeChunk.charCount,
+            tokens: activeChunk.tokenEstimate,
+          }}
+          chunkNav={{
+            index: Math.min(activeChunkIndex, output.chunks.length - 1),
+            total: output.chunks.length,
+            onSelect: setActiveChunkIndex,
+          }}
+          isOversized={activeChunk.isOversized}
         />
       )}
     </div>
