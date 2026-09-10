@@ -22,6 +22,9 @@ ehthumbs.db
 *.log
 .eslintcache
 
+# test output
+/coverage/
+
 # env
 .env*
 *.local
