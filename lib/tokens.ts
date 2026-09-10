@@ -26,8 +26,8 @@ function isCjkCodePoint(cp: number): boolean {
 }
 
 // Rough token estimate: one token per CJK character, one per ~4 others. Good
-// enough to eyeball whether an output fits a target chatbot; the chunk budget
-// itself is enforced in exact characters, never in tokens.
+// enough to eyeball whether an output fits a target chatbot or agent; the
+// chunk budget itself is enforced in exact characters, never in tokens.
 export function estimateTokens(text: string): number {
   let cjk = 0;
   let other = 0;

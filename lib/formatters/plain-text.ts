@@ -9,7 +9,7 @@ import { getRoleName, renderAttachmentLabel, stripThink } from "./shared";
 // Plain text for targets that don't render markdown: no **, >, #, or link
 // syntax — structure comes from all-caps labels and blank lines alone. Code
 // keeps triple-backtick fences: they delimit code readably everywhere and most
-// chatbots tolerate them even when they don't render them.
+// chatbots and agents tolerate them even when they don't render them.
 export function toPlainText(ir: ConversationIR, options: FormatOptions): string {
   const lines: string[] = [];
   lines.push(partTitle(ir.title, options));

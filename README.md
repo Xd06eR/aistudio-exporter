@@ -4,7 +4,7 @@
 
 A small web tool that converts Google AI Studio conversation exports into clean **Markdown**, **XML**, **HTML**, or **Plain Text** — ready to paste into another chatbot or agent to continue the work.
 
-Exports from [aistudio.google.com](https://aistudio.google.com) are intended for Gemini only. This tool restructures them into portable formats suitable for cross-chatbot continuation.
+Exports from [aistudio.google.com](https://aistudio.google.com) are intended for Gemini only. This tool restructures them into formats any chatbot or agent can read.
 
 <!-- HERO -->
 ![Landing screen](./public/screenshots/01-upload.png)
@@ -14,7 +14,7 @@ Exports from [aistudio.google.com](https://aistudio.google.com) are intended for
 
 - **Drag-and-drop upload** — the preview re-renders live when any option changes.
 - **Turn selection** — export any subset of the conversation: checkboxes per turn, ranges (e.g. turns 1–50 then 60–70), or by role.
-- **Chunked export** — split the output into size-bounded parts (character budget) so long conversations paste into a chatbot without truncation; copy or download each part, with optional `Part i/N` headers for continuation context.
+- **Chunked export** — split the output into size-bounded parts (character budget) so long conversations paste into a chatbot or agent without truncation; copy or download each part, with optional `Part i/N` headers for continuation context.
 - **Live size counter** — exact character count plus an approximate token estimate of what will be exported.
 - **Thinking & system instructions toggles** — keep them or strip them for a cleaner paste.
 - **Role labels** — pick the chatbot you're pasting into (Gemini, ChatGPT, Claude, Grok, Llama, Mistral, or DeepSeek) and the labels match.
