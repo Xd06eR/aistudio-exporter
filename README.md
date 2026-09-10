@@ -137,6 +137,7 @@ Google AI Studio autosaves every prompt to your Google Drive — there is no dir
 - TypeScript
 - Tailwind CSS v4
 - `react-markdown`, `remark-gfm`, `marked`, `lucide-react`
+- `vitest`
 
 ## Contributing
 
