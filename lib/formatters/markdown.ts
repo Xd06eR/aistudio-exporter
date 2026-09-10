@@ -7,11 +7,11 @@ import type {
 import { getRoleName, renderAttachmentLabel, stripThink } from "./shared";
 
 export function toMarkdown(ir: ConversationIR, options: FormatOptions): string {
-  let md = `**📄 ${ir.title}**\n\n`;
+  let md = `**${ir.title}${partSuffix(options)}**\n\n`;
 
   if (options.showSystemInstructions && ir.systemInstructions) {
     md += `---\n\n`;
-    md += `**⚙️ System Instructions**\n\n`;
+    md += `**SYSTEM INSTRUCTIONS**\n\n`;
     md += `> ${processText(ir.systemInstructions, options).split("\n").join("\n> ")}\n\n`;
   }
 
@@ -31,26 +31,26 @@ export function toMarkdown(ir: ConversationIR, options: FormatOptions): string {
       md += renderGrounding(turn.grounding) + "\n\n";
     }
     if (turn.finishReason) {
-      md += `> ⚠️ *Response ended with \`${turn.finishReason}\` (not normal completion).*\n\n`;
+      md += `> *Response ended with \`${turn.finishReason}\` (not normal completion).*\n\n`;
     }
   }
 
   if (ir.promptParts && ir.promptParts.length > 0) {
     md += `---\n\n`;
-    md += `**📝 Prompt**\n\n`;
+    md += `**PROMPT**\n\n`;
     md += `${renderParts(ir.promptParts, options)}\n\n`;
   }
 
   if (ir.examples && ir.examples.length > 0) {
     md += `---\n\n`;
-    md += `**📚 Examples**\n\n`;
+    md += `**EXAMPLES**\n\n`;
     ir.examples.forEach((ex, i) => {
       md += `**Example ${i + 1}**\n\n`;
       if (ex.input.length > 0) {
-        md += `**Input:**\n${renderParts(ex.input, options)}\n\n`;
+        md += `**INPUT:**\n${renderParts(ex.input, options)}\n\n`;
       }
       if (ex.output.length > 0) {
-        md += `**Output:**\n${renderParts(ex.output, options)}\n\n`;
+        md += `**OUTPUT:**\n${renderParts(ex.output, options)}\n\n`;
       }
     });
   }
@@ -63,7 +63,7 @@ function renderParts(parts: ContentPart[], options: FormatOptions): string {
   for (const part of parts) {
     if (part.kind === "thinking") {
       if (!options.includeThinking || !part.text) continue;
-      out.push(`> **Thinking:**\n> ${part.text.split("\n").join("\n> ")}`);
+      out.push(`> **THINKING:**\n> ${part.text.split("\n").join("\n> ")}`);
     } else if (part.kind === "media") {
       out.push(`*[Image/Media Attachment]*`);
     } else if (part.kind === "attachment") {
@@ -77,7 +77,7 @@ function renderParts(parts: ContentPart[], options: FormatOptions): string {
       out.push("```" + lang + "\n" + body + "\n```");
     } else if (part.kind === "code-result") {
       const failed = part.codeOutcome && part.codeOutcome !== "OUTCOME_OK";
-      const label = failed ? "Code Execution Error" : "Code Execution Result";
+      const label = failed ? "CODE EXECUTION ERROR" : "CODE EXECUTION RESULT";
       const body = (part.text || "").replace(/\s+$/, "");
       out.push(`**${label}:**\n\n\`\`\`\n${body}\n\`\`\``);
     } else if (part.text) {
@@ -94,13 +94,13 @@ function processText(text: string, options: FormatOptions): string {
     .replace(/<think>([\s\S]*?)<\/think>/gi, (_match, thought: string) => {
       // Prefix every line of the thought so multi-line content stays inside the blockquote.
       const quoted = thought.split("\n").join("\n> ");
-      return `> **Thinking:**\n> ${quoted}\n\n`;
+      return `> **THINKING:**\n> ${quoted}\n\n`;
     })
     .trim();
 }
 
 function renderGrounding(g: Grounding): string {
-  const lines: string[] = ["> **🔎 Grounded with Google Search**"];
+  const lines: string[] = ["> **GROUNDED WITH GOOGLE SEARCH**"];
   if (g.webSearchQueries.length > 0) {
     lines.push(">");
     lines.push("> *Searches performed:*");
@@ -116,4 +116,8 @@ function renderGrounding(g: Grounding): string {
     }
   }
   return lines.join("\n");
+}
+
+function partSuffix(options: FormatOptions): string {
+  return options.part ? ` — Part ${options.part.index}/${options.part.total}` : "";
 }

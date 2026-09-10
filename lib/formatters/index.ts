@@ -2,6 +2,7 @@ import type { ConversationIR, FormatOptions, OutputFormat } from "../types";
 import { toMarkdown } from "./markdown";
 import { toXml } from "./xml";
 import { toHtml } from "./html";
+import { toPlainText } from "./plain-text";
 
 export interface FormatDefinition {
   label: string;
@@ -29,6 +30,17 @@ export const formatters: Record<OutputFormat, FormatDefinition> = {
     mimeType: "text/html",
     format: toHtml,
   },
+  "plain-text": {
+    label: "Plain Text (.txt)",
+    extension: "txt",
+    mimeType: "text/plain",
+    format: toPlainText,
+  },
 };
 
-export const OUTPUT_FORMATS: OutputFormat[] = ["markdown", "xml", "html"];
+export const OUTPUT_FORMATS: OutputFormat[] = [
+  "markdown",
+  "xml",
+  "html",
+  "plain-text",
+];

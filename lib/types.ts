@@ -9,7 +9,7 @@ export type ModelPersona =
   | "mistral"
   | "deepseek";
 
-export type OutputFormat = "markdown" | "xml" | "html";
+export type OutputFormat = "markdown" | "xml" | "html" | "plain-text";
 
 export type AttachmentType = "youtube" | "drive-image" | "drive-document";
 
@@ -82,8 +82,15 @@ export interface ConversationIR {
   runSettings: RunSettings | null;
 }
 
+// Set only by the chunk pipeline; absent means single-output mode.
+export interface PartInfo {
+  index: number;
+  total: number;
+}
+
 export interface FormatOptions {
   includeThinking: boolean;
   modelPersona: ModelPersona;
   showSystemInstructions: boolean;
+  part?: PartInfo;
 }

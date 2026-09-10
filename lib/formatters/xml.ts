@@ -13,7 +13,12 @@ import {
 
 export function toXml(ir: ConversationIR, options: FormatOptions): string {
   const lines: string[] = [];
-  lines.push(`<conversation title="${escapeXmlAttr(ir.title)}">`);
+  // Part info rides as attributes, not a text node — XML output is
+  // machine-consumed, so metadata belongs in structure, not visible prose.
+  const partAttrs = options.part
+    ? ` part="${options.part.index}" of="${options.part.total}"`
+    : "";
+  lines.push(`<conversation title="${escapeXmlAttr(ir.title)}"${partAttrs}>`);
 
   if (options.showSystemInstructions && ir.systemInstructions) {
     const sys = options.includeThinking

@@ -1,23 +1,25 @@
 import type { ContentPart, ModelPersona, Role } from "../types";
 
+// All-caps speaker tags: transcript-style caps are a strong separation signal
+// LLMs parse reliably, and they stay visually distinct in formats without bold.
 export function getRoleName(role: Role, persona: ModelPersona): string {
   const isUser = role === "user";
   switch (persona) {
     case "chatgpt":
-      return isUser ? "👤 User" : "🤖 ChatGPT";
+      return isUser ? "USER" : "CHATGPT";
     case "claude":
-      return isUser ? "👤 User" : "🤖 Claude";
+      return isUser ? "USER" : "CLAUDE";
     case "grok":
-      return isUser ? "👤 User" : "🤖 Grok";
+      return isUser ? "USER" : "GROK";
     case "llama":
-      return isUser ? "👤 User" : "🤖 Llama";
+      return isUser ? "USER" : "LLAMA";
     case "mistral":
-      return isUser ? "👤 User" : "🤖 Mistral";
+      return isUser ? "USER" : "MISTRAL";
     case "deepseek":
-      return isUser ? "👤 User" : "🤖 DeepSeek";
+      return isUser ? "USER" : "DEEPSEEK";
     case "gemini":
     default:
-      return isUser ? "👤 User" : "🤖 Model";
+      return isUser ? "USER" : "MODEL";
   }
 }
 
@@ -50,12 +52,12 @@ export function renderAttachmentLabel(part: ContentPart): string {
   const id = part.attachmentId || "unknown";
   switch (part.attachmentType) {
     case "youtube":
-      return `📎 YouTube video attached: https://www.youtube.com/watch?v=${id}`;
+      return `YouTube video attached: https://www.youtube.com/watch?v=${id}`;
     case "drive-image":
-      return `📎 Image attached (Google Drive ID: ${id})`;
+      return `Image attached (Google Drive ID: ${id})`;
     case "drive-document":
-      return `📎 Document attached (Google Drive ID: ${id})`;
+      return `Document attached (Google Drive ID: ${id})`;
     default:
-      return `📎 Attachment (ID: ${id})`;
+      return `Attachment (ID: ${id})`;
   }
 }
