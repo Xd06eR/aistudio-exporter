@@ -4,7 +4,7 @@ import type {
   FormatOptions,
   Grounding,
 } from "../types";
-import { getRoleName, renderAttachmentLabel, stripThink } from "./shared";
+import { getRoleName, renderAttachmentLabel, shouldSkipAttachment, stripThink } from "./shared";
 
 // Plain text for targets that don't render markdown: no **, >, #, or link
 // syntax — structure comes from all-caps labels and blank lines alone. Code
@@ -77,6 +77,7 @@ function renderParts(parts: ContentPart[], options: FormatOptions): string {
     } else if (part.kind === "media") {
       out.push("[Image/Media Attachment]");
     } else if (part.kind === "attachment") {
+      if (shouldSkipAttachment(part, options)) continue;
       out.push(`[${renderAttachmentLabel(part)}]`);
     } else if (part.kind === "json") {
       const body = (part.text || "").trim();

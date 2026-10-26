@@ -12,6 +12,8 @@ const options: FormatOptions = {
   includeThinking: true,
   modelPersona: "gemini",
   showSystemInstructions: true,
+  showDriveAttachments: true,
+  showYouTubeLinks: true,
 };
 
 function fixtureIr(): ConversationIR {

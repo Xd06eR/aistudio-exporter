@@ -8,6 +8,7 @@ import {
   escapeXml,
   escapeXmlAttr,
   renderAttachmentLabel,
+  shouldSkipAttachment,
   stripThink,
 } from "./shared";
 
@@ -87,6 +88,7 @@ function renderParts(
     } else if (part.kind === "media") {
       out.push(`${indent}<media>Image/Media Attachment</media>`);
     } else if (part.kind === "attachment") {
+      if (shouldSkipAttachment(part, options)) continue;
       const typeAttr = part.attachmentType
         ? ` type="${escapeXmlAttr(part.attachmentType)}"`
         : "";

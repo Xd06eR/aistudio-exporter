@@ -4,7 +4,7 @@ import type {
   FormatOptions,
   Grounding,
 } from "../types";
-import { getRoleName, renderAttachmentLabel, stripThink } from "./shared";
+import { getRoleName, renderAttachmentLabel, shouldSkipAttachment, stripThink } from "./shared";
 
 export function toMarkdown(ir: ConversationIR, options: FormatOptions): string {
   let md = `**${ir.title}${partSuffix(options)}**\n\n`;
@@ -67,6 +67,7 @@ function renderParts(parts: ContentPart[], options: FormatOptions): string {
     } else if (part.kind === "media") {
       out.push(`*[Image/Media Attachment]*`);
     } else if (part.kind === "attachment") {
+      if (shouldSkipAttachment(part, options)) continue;
       out.push(`*[${renderAttachmentLabel(part)}]*`);
     } else if (part.kind === "json") {
       const body = (part.text || "").trim();

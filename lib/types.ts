@@ -92,5 +92,7 @@ export interface FormatOptions {
   includeThinking: boolean;
   modelPersona: ModelPersona;
   showSystemInstructions: boolean;
+  showDriveAttachments: boolean;
+  showYouTubeLinks: boolean;
   part?: PartInfo;
 }

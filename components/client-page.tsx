@@ -48,6 +48,8 @@ export function ClientPage() {
 
   const [includeThinking, setIncludeThinking] = useState(true);
   const [showSystemInstructions, setShowSystemInstructions] = useState(true);
+  const [showDriveAttachments, setShowDriveAttachments] = useState(true);
+  const [showYouTubeLinks, setShowYouTubeLinks] = useState(true);
   const [modelPersona, setModelPersona] = useState<ModelPersona>("gemini");
   const [outputFormat, setOutputFormat] = useState<OutputFormat>("markdown");
 
@@ -92,6 +94,8 @@ export function ClientPage() {
       includeThinking,
       modelPersona,
       showSystemInstructions,
+      showDriveAttachments,
+      showYouTubeLinks,
     });
   }, [
     ir,
@@ -101,13 +105,21 @@ export function ClientPage() {
     includeThinking,
     modelPersona,
     showSystemInstructions,
+    showDriveAttachments,
+    showYouTubeLinks,
   ]);
 
   const output: OutputResult | null = useMemo(() => {
     if (!ir || !effectiveSelection) return null;
     try {
       const selectedIr = filterTurns(ir, effectiveSelection);
-      const formatOptions = { includeThinking, modelPersona, showSystemInstructions };
+      const formatOptions = {
+        includeThinking,
+        modelPersona,
+        showSystemInstructions,
+        showDriveAttachments,
+        showYouTubeLinks,
+      };
       if (!isChunkingEnabled) {
         const content = formatters[outputFormat].format(selectedIr, formatOptions);
         return { kind: "single", content, measure: measureOutput(content) };
@@ -130,6 +142,8 @@ export function ClientPage() {
     includeThinking,
     modelPersona,
     showSystemInstructions,
+    showDriveAttachments,
+    showYouTubeLinks,
     chunkBudgetInput,
     includePartHeader,
     weights,
@@ -185,8 +199,8 @@ export function ClientPage() {
 
       {rawJson && (
         <div className="w-full max-w-4xl mx-auto mt-8 p-6 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col gap-4">
-          <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+          <div className="flex flex-col md:flex-row gap-6 md:gap-4 items-start justify-between">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-x-6 gap-y-4 whitespace-nowrap">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
@@ -214,6 +228,27 @@ export function ClientPage() {
                 />
                 <span className="text-sm font-medium text-slate-700">Split into Chunks</span>
               </label>
+              <div className="flex flex-col gap-y-1.5 sm:flex-row sm:items-center sm:gap-x-2 sm:gap-y-0">
+                <span className="text-sm font-medium text-slate-700">Attachments:</span>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showDriveAttachments}
+                    onChange={(e) => setShowDriveAttachments(e.target.checked)}
+                    className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                  />
+                  <span className="text-sm font-medium text-slate-700">Drive files</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showYouTubeLinks}
+                    onChange={(e) => setShowYouTubeLinks(e.target.checked)}
+                    className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                  />
+                  <span className="text-sm font-medium text-slate-700">YouTube links</span>
+                </label>
+              </div>
             </div>
 
             <button

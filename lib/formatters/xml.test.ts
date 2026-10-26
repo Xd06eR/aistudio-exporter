@@ -6,6 +6,8 @@ const options: FormatOptions = {
   includeThinking: true,
   modelPersona: "claude",
   showSystemInstructions: true,
+  showDriveAttachments: true,
+  showYouTubeLinks: true,
 };
 
 function fixtureIr(): ConversationIR {
@@ -58,5 +60,62 @@ describe("toXml", () => {
   it("leaves the root element unchanged when no part is set", () => {
     const out = toXml(fixtureIr(), options);
     expect(out).toContain('<conversation title="My Chat Title">');
+  });
+
+  it("hides Drive attachment elements when showDriveAttachments is off", () => {
+    const ir: ConversationIR = {
+      title: "T",
+      systemInstructions: null,
+      turns: [
+        {
+          role: "user",
+          parts: [
+            { kind: "text", text: "Check these" },
+            { kind: "attachment", attachmentType: "drive-document", attachmentId: "doc1" },
+            { kind: "attachment", attachmentType: "youtube", attachmentId: "abc123" },
+          ],
+        },
+      ],
+      promptParts: null,
+      examples: null,
+      runSettings: null,
+    };
+    const out = toXml(ir, { ...options, showDriveAttachments: false });
+    expect(out).toContain("Check these");
+    expect(out).toContain('<attachment type="youtube"');
+    expect(out).not.toContain("drive-document");
+    expect(out).not.toContain("doc1");
+  });
+
+  it("hides the YouTube attachment element when showYouTubeLinks is off", () => {
+    const out = toXml(fixtureIr(), { ...options, showYouTubeLinks: false });
+    expect(out).not.toContain("<attachment");
+    expect(out).not.toContain("abc123");
+  });
+
+  it("keeps media elements when both attachment toggles are off", () => {
+    const ir: ConversationIR = {
+      title: "T",
+      systemInstructions: null,
+      turns: [
+        {
+          role: "model",
+          parts: [
+            { kind: "media" },
+            { kind: "attachment", attachmentType: "drive-document", attachmentId: "doc1" },
+          ],
+        },
+      ],
+      promptParts: null,
+      examples: null,
+      runSettings: null,
+    };
+    const out = toXml(ir, {
+      ...options,
+      showDriveAttachments: false,
+      showYouTubeLinks: false,
+    });
+    expect(out).toContain("<media>Image/Media Attachment</media>");
+    expect(out).not.toContain("<attachment");
   });
 });

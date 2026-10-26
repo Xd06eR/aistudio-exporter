@@ -6,6 +6,8 @@ const options: FormatOptions = {
   includeThinking: true,
   modelPersona: "claude",
   showSystemInstructions: true,
+  showDriveAttachments: true,
+  showYouTubeLinks: true,
 };
 
 function fixtureIr(): ConversationIR {
@@ -34,6 +36,27 @@ function fixtureIr(): ConversationIR {
       },
     ],
     promptParts: [{ kind: "text", text: "Write a poem" }],
+    examples: null,
+    runSettings: null,
+  };
+}
+
+function attachmentsIr(): ConversationIR {
+  return {
+    title: "T",
+    systemInstructions: null,
+    turns: [
+      {
+        role: "user",
+        parts: [
+          { kind: "text", text: "Check these" },
+          { kind: "attachment", attachmentType: "drive-document", attachmentId: "doc1" },
+          { kind: "attachment", attachmentType: "drive-image", attachmentId: "img1" },
+          { kind: "attachment", attachmentType: "youtube", attachmentId: "abc123" },
+        ],
+      },
+    ],
+    promptParts: null,
     examples: null,
     runSettings: null,
   };
@@ -86,5 +109,57 @@ describe("toMarkdown", () => {
     const out = toMarkdown(fixtureIr(), options);
     expect(out).toContain("**My Chat Title**");
     expect(out).not.toContain("Part 2/3");
+  });
+
+  it("renders all attachment placeholders when both toggles are on", () => {
+    const out = toMarkdown(attachmentsIr(), options);
+    expect(out).toContain("Document attached (Google Drive ID: doc1)");
+    expect(out).toContain("Image attached (Google Drive ID: img1)");
+    expect(out).toContain("https://www.youtube.com/watch?v=abc123");
+  });
+
+  it("hides Drive placeholders but keeps text and YouTube when showDriveAttachments is off", () => {
+    const out = toMarkdown(attachmentsIr(), {
+      ...options,
+      showDriveAttachments: false,
+    });
+    expect(out).toContain("Check these");
+    expect(out).toContain("https://www.youtube.com/watch?v=abc123");
+    expect(out).not.toContain("Document attached");
+    expect(out).not.toContain("Image attached");
+    expect(out).not.toContain("doc1");
+  });
+
+  it("hides the YouTube placeholder but keeps Drive labels when showYouTubeLinks is off", () => {
+    const out = toMarkdown(attachmentsIr(), { ...options, showYouTubeLinks: false });
+    expect(out).toContain("Document attached (Google Drive ID: doc1)");
+    expect(out).not.toContain("youtube.com");
+    expect(out).not.toContain("abc123");
+  });
+
+  it("keeps media placeholders when both attachment toggles are off", () => {
+    const ir: ConversationIR = {
+      title: "T",
+      systemInstructions: null,
+      turns: [
+        {
+          role: "model",
+          parts: [
+            { kind: "media" },
+            { kind: "attachment", attachmentType: "drive-document", attachmentId: "doc1" },
+          ],
+        },
+      ],
+      promptParts: null,
+      examples: null,
+      runSettings: null,
+    };
+    const out = toMarkdown(ir, {
+      ...options,
+      showDriveAttachments: false,
+      showYouTubeLinks: false,
+    });
+    expect(out).toContain("Image/Media Attachment");
+    expect(out).not.toContain("Document attached");
   });
 });

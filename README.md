@@ -17,6 +17,7 @@ Exports from [aistudio.google.com](https://aistudio.google.com) are intended for
 - **Chunked export** — split the output into size-bounded parts (character budget) so long conversations paste into a chatbot or agent without truncation; copy or download each part, with optional `Part i/N` headers for continuation context.
 - **Live size counter** — exact character count plus an approximate token estimate of what will be exported.
 - **Thinking & system instructions toggles** — keep them or strip them for a cleaner paste.
+- **Attachment toggles** — keep or strip Drive file and YouTube link placeholders; Drive references only resolve inside your Google account.
 - **Role labels** — pick the chatbot you're pasting into (Gemini, ChatGPT, Claude, Grok, Llama, Mistral, or DeepSeek) and the labels match.
 - **Streamed prose reassembled** — merged so Chinese / Japanese / continuous prose does not break mid-sentence.
 - **Code-execution preserved** — both the Gemini-generated source and its output are kept as separate blocks.

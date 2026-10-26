@@ -1,4 +1,4 @@
-import type { ContentPart, ModelPersona, Role } from "../types";
+import type { ContentPart, FormatOptions, ModelPersona, Role } from "../types";
 
 // All-caps speaker tags: transcript-style caps are a strong separation signal
 // LLMs parse reliably, and they stay visually distinct in formats without bold.
@@ -60,4 +60,16 @@ export function renderAttachmentLabel(part: ContentPart): string {
     default:
       return `Attachment (ID: ${id})`;
   }
+}
+
+// Drive references resolve only inside the exporter's Google account, so a
+// re-ingesting agent can't use them; YouTube links are public. Each family
+// gets its own toggle. Unknown types follow the Drive toggle.
+export function shouldSkipAttachment(
+  part: ContentPart,
+  options: FormatOptions,
+): boolean {
+  return part.attachmentType === "youtube"
+    ? !options.showYouTubeLinks
+    : !options.showDriveAttachments;
 }
